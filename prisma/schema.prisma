@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         String    @default("USER")
+  createdAt    DateTime  @default(now())
+  tests        Test[]
+  attempts     Attempt[]
+}
+
+model Test {
+  id              String     @id @default(cuid())
+  title           String
+  description     String?
+  subject         String?
+  course          String?
+  durationMinutes Int
+  isPublished     Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+  createdBy       String
+  creator         User       @relation(fields: [createdBy], references: [id])
+  questions       Question[]
+  attempts        Attempt[]
+}
+
+model Question {
+  id       String    @id @default(cuid())
+  testId   String
+  type     String
+  text     String
+  order    Int
+  topicTag String?
+  test     Test      @relation(fields: [testId], references: [id], onDelete: Cascade)
+  options  Option[]
+  keywords Keyword[]
+  answers  Answer[]
+}
+
+model Option {
+  id         String   @id @default(cuid())
+  questionId String
+  text       String
+  isCorrect  Boolean  @default(false)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answers    Answer[]
+}
+
+model Keyword {
+  id         String   @id @default(cuid())
+  questionId String
+  word       String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model Attempt {
+  id          String    @id @default(cuid())
+  userId      String
+  testId      String
+  startedAt   DateTime  @default(now())
+  submittedAt DateTime?
+  score       Float?
+  status      String    @default("IN_PROGRESS")
+  user        User      @relation(fields: [userId], references: [id])
+  test        Test      @relation(fields: [testId], references: [id])
+  answers     Answer[]
+}
+
+model Answer {
+  id               String   @id @default(cuid())
+  attemptId        String
+  questionId       String
+  selectedOptionId String?
+  textAnswer       String?
+  isCorrect        Boolean?
+  keywordScore     Int?
+  attempt          Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question         Question @relation(fields: [questionId], references: [id])
+  selectedOption   Option?  @relation(fields: [selectedOptionId], references: [id])
+}
